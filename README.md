@@ -85,7 +85,7 @@ You may optionally create your own `.desktop` launcher or wrapper script.
 ## 📁 Project Structure
 
     /
-    ├── BoosteroidInstall.sh          # Main installer (Arch-only)
+    ├── Boosteroid.sh          # Main installer (Arch-only)
     └── LICENSE                    # MIT License covering this script
 
 *Boosteroid’s binaries will appear after running the installer.*
