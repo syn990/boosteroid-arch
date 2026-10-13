@@ -4,8 +4,20 @@ set -euo pipefail
 # -----------------------------------------
 # Boosteroid portable installer – Arch-only
 # -----------------------------------------
+# Downloads the official Boosteroid portable Linux client and extracts it,
+# installing only the runtime dependencies it needs from the official repos.
+# It does not redistribute Boosteroid's software.
 
-PACMAN_PACKAGES="tar wget libva libvdpau libxcb xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil libxinerama xorg-xinput traceroute pcre2"
+PACMAN_PACKAGES=(
+  tar wget                               # fetch + extract
+  libva libvdpau                         # video acceleration
+  libxcb xcb-util-wm xcb-util-image      # XCB / windowing
+  xcb-util-keysyms xcb-util-renderutil   # XCB / windowing
+  libxinerama xorg-xinput                # X11 compatibility
+  numactl                                # NUMA / CPU affinity
+  traceroute                             # network diagnostics
+  pcre2                                  # runtime regex library
+)
 
 INSTALL_URL="https://boosteroid.com/linux/installer/boosteroid_portable.tar"
 APP_DIR="BoosteroidGamesS.R.L."
@@ -14,67 +26,50 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 get_priv() {
-  if have_cmd sudo; then
-    echo "sudo"
-  elif have_cmd pkexec; then
-    echo "pkexec"
-  else
-    die "Neither sudo nor pkexec found for privilege escalation."
+  if have_cmd sudo; then echo "sudo"
+  elif have_cmd pkexec; then echo "pkexec"
+  else die "Neither sudo nor pkexec found for privilege escalation."
   fi
 }
 
 detect_arch_only() {
-  local id like
   if [[ -r /etc/os-release ]]; then
     # shellcheck disable=SC1091
     . /etc/os-release
-    id="${ID:-}"; like="${ID_LIKE:-}"
+    local id="${ID:-}" like="${ID_LIKE:-}"
     id="${id,,}"; like="${like,,}"
-    if [[ "$id" =~ (arch|artix|manjaro|endeavouros) ]] || [[ "$like" =~ arch ]]; then
-      return 0
-    fi
+    [[ "$id" =~ (arch|artix|manjaro|endeavouros) || "$like" =~ arch ]] && return 0
   fi
-  # Fallback: pacman presence strongly implies Arch family
-  if have_cmd pacman; then
-    return 0
-  fi
+  have_cmd pacman && return 0
   return 1
 }
 
 echo "==> Verifying Arch-based system..."
-if ! detect_arch_only; then
-  die "This installer is Arch-only. Detected non-Arch system."
-fi
-
-if ! have_cmd pacman; then
-  die "pacman not found. This script requires pacman."
-fi
+detect_arch_only || die "This installer is Arch-only. Detected a non-Arch system."
+have_cmd pacman  || die "pacman not found. This script requires pacman."
 
 PRIV="$(get_priv)"
 
-echo "==> Installing required packages via pacman:"
-echo "    $PACMAN_PACKAGES"
-$PRIV pacman -Sy --noconfirm $PACMAN_PACKAGES
+echo "==> Installing runtime dependencies (already-present ones are skipped):"
+printf '    %s\n' "${PACMAN_PACKAGES[*]}"
+# -S --needed, never -Sy: refreshing the db without a full upgrade (-Sy <pkg>)
+# is a partial upgrade and can break the system. Run 'sudo pacman -Syu' yourself
+# first if your package database is stale.
+$PRIV pacman -S --needed --noconfirm "${PACMAN_PACKAGES[@]}"
 
-# Prepare workspace
 TMPDIR="$(mktemp -d)"
-cleanup() { rm -rf "$TMPDIR"; }
-trap cleanup EXIT
-
+trap 'rm -rf "$TMPDIR"' EXIT
 TARBALL="${TMPDIR}/boosteroid_portable.tar"
 
-echo "==> Downloading Boosteroid portable payload..."
+echo "==> Downloading the official Boosteroid portable client..."
 wget -O "$TARBALL" "$INSTALL_URL"
 
-# Optional checksum verification:
-# echo "<SHA256_CHECKSUM>  ${TARBALL}" | sha256sum -c -
+# Optional integrity check. The vendor tarball is unversioned, so any pinned
+# hash will drift whenever Boosteroid update the client:
+#   echo "<SHA256>  ${TARBALL}" | sha256sum -c -
 
-echo "==> Creating application directory: ${APP_DIR}"
-mkdir -p "${APP_DIR}"
+echo "==> Extracting into ./${APP_DIR}"
+mkdir -p "$APP_DIR"
+tar xf "$TARBALL" -C "$APP_DIR"
 
-echo "==> Extracting payload into ${APP_DIR}"
-tar xf "$TARBALL" -C "${APP_DIR}"
-
-echo "==> Done. Launch binaries from: ${APP_DIR}"
-exit 0
-
+echo "==> Done. Launch it with:  cd '${APP_DIR}' && ./boosteroid"

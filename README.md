@@ -1,144 +1,77 @@
-
 # Boosteroid Portable Installer (Arch Linux)
 
-A lightweight, secure, and Arch‑optimised installer for the **Boosteroid Portable Linux Client**.  
-This script automates dependency installation and clean extraction of the official Boosteroid portable tarball using only **pacman** and standard system tools.
+An Arch-only installer for the official **Boosteroid portable Linux client**. It
+installs the correct runtime dependencies from the official repos and extracts
+the vendor's portable tarball — nothing else. It does **not** redistribute
+Boosteroid's software; the client is downloaded straight from Boosteroid.
 
----
+Verified working (2026-10): the vendor payload at
+`https://boosteroid.com/linux/installer/boosteroid_portable.tar` is live (~122 MB),
+and every dependency below resolves in the current `core`/`extra` repos.
 
-## 🔧 Overview
-
-This project provides:
-
-- An **Arch‑only** installer (`pacman` required)  
-- Safe, temporary workspace for downloaded files  
-- Automatic dependency installation  
-- Clean extraction into a dedicated application directory  
-- Optional checksum verification  
-- No AUR helpers, no system pollution, no background services  
-
-The script does **not** redistribute Boosteroid software.  
-It only downloads the official portable client directly from Boosteroid’s servers.
-
----
-
-## 📦 Dependencies
-
-The installer handles all required packages automatically.  
-Here’s the full dependency map for reference:
-
-| Purpose                        | Package(s)                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| Core Tools                     | `tar`, `wget`                                                                        |
-| Video Acceleration             | `libva`, `libvdpau`                                                                  |
-| XCB / Windowing Components     | `libxcb`, `xcb-util-wm`, `xcb-util-image`, `xcb-util-keysyms`, `xcb-util-renderutil` |
-| X11 Compatibility              | `libxinerama`, `xorg-xinput`                                                         |
-| NUMA Management / CPU Affinity | `numactl`                                                                            |
-| Network Utilities              | `traceroute`                                                                         |
-| Runtime Library Support        | `pcre2`                                                                              |
-
----
-
-## 🚀 Installation
-
-### 1. Download the installer
+## Install
 
 ```bash
-wget https://raw.githubusercontent.com/syn990/boosteroid-arch/BoosteroidInstall.sh
-chmod +x BoosteroidInstall.sh
-````
-
-### 2. Run it
-
-```bash
-./BoosteroidInstall.sh
+wget https://raw.githubusercontent.com/syn990/boosteroid-arch/main/boosteroid.sh
+chmod +x boosteroid.sh
+./boosteroid.sh
 ```
 
-The script will:
+What it does:
 
-1.  Verify that you're running an Arch‑based system
-2.  Install required dependencies
-3.  Download the Boosteroid portable package
-4.  Extract it safely into:
+1. Checks you're on an Arch-based system (`arch`/`artix`/`manjaro`/`endeavouros`, or any `pacman`).
+2. Installs the runtime dependencies with `pacman -S --needed` (ones you already have are skipped).
+3. Downloads the official portable client into a temporary directory.
+4. Extracts it into `./BoosteroidGamesS.R.L.` in the current directory.
+5. Cleans up the temporary files.
 
-<!---->
+> Update first if your system is stale: run `sudo pacman -Syu`. The installer
+> deliberately uses `-S` (not `-Sy`) so it can never trigger a partial upgrade.
 
-    BoosteroidGamesS.R.L/
-
-5.  Clean up temporary files
-
-***
-
-## ▶️ Running Boosteroid
-
-Inside the extracted directory, launch the Boosteroid binary:
+## Run
 
 ```bash
-cd BoosteroidGamesS.R.L
+cd BoosteroidGamesS.R.L.
 ./boosteroid
 ```
 
-You may optionally create your own `.desktop` launcher or wrapper script.
+Add your own `.desktop` entry or wrapper script if you want it in your launcher.
 
-***
+## Dependencies
 
-## 📁 Project Structure
+Installed automatically, all from the official `core`/`extra` repos:
 
-    /
-    ├── Boosteroid.sh          # Main installer (Arch-only)
-    └── LICENSE                    # MIT License covering this script
+| Purpose | Packages |
+| --- | --- |
+| Fetch & extract | `tar`, `wget` |
+| Video acceleration | `libva`, `libvdpau` |
+| XCB / windowing | `libxcb`, `xcb-util-wm`, `xcb-util-image`, `xcb-util-keysyms`, `xcb-util-renderutil` |
+| X11 compatibility | `libxinerama`, `xorg-xinput` |
+| NUMA / CPU affinity | `numactl` |
+| Network diagnostics | `traceroute` |
+| Runtime regex | `pcre2` |
 
-*Boosteroid’s binaries will appear after running the installer.*
+## Why this exists
 
-***
+Boosteroid ship a portable Linux client but leave dependency installation to you,
+and their per-distro notes don't map cleanly to Arch. This maps every runtime
+dependency to its exact Arch package so the client just runs — no AUR helper, no
+system pollution, no background services.
 
-## 🔍 Security Notes
+## Packaging / AUR
 
-*   The script uses `mktemp -d` for workspace isolation
-*   Privilege escalation is routed through `sudo` (or `pkexec` fallback)
-*   Optional SHA256 verification block is included inside the script
-*   No permanent system modifications except dependency installation
+Not on the AUR (yet). The dependency table above is exactly what a PKGBUILD's
+`depends=()` would carry, so this is ready to become one. Take it and package it
+if you like.
 
-***
+## Files
 
-## 🧩 Why This Exists
+```
+boosteroid.sh   # the installer (Arch-only)
+LICENSE         # MIT, covers this script only
+```
 
-Boosteroid provides a portable Linux client, but dependency installation varies by distribution.  
-This script makes **Arch Linux** a first‑class citizen by providing:
+## License
 
-*   Correctly mapped dependencies
-*   Clean extraction
-*   No-frills execution path
-
-It follows a similar philosophy used in SYN‑OS development: keep things simple, explicit, and user‑controlled.
-
-***
-
-## 📜 License
-
-This installer script is licensed under the **MIT License**.  
-See `LICENSE.md` for full details.
-
-> **Important:**  
-> Boosteroid’s own software, trademarks, and binaries are NOT licensed under MIT.  
-> They are downloaded directly from Boosteroid and remain subject to their terms.
-
-***
-
-## 📝 Contributing
-
-Don't bother.
-Take it and put it on the AUR.
-
-***
-
-## ✔️ Summary
-
-This project provides a:
-
-*   Clean
-*   Simple
-*   Arch‑focused
-*   Secure
-
-installer for the Boosteroid Portable Client without modifying or redistributing Boosteroid’s software.
+MIT — this script only. Boosteroid's own software, trademarks and binaries are
+not covered: they're downloaded from Boosteroid and remain subject to their terms.
